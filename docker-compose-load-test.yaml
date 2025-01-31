@@ -1,0 +1,71 @@
+name: ai-load-balancer-load-test
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+  mock-server:
+    build:
+      context: .
+      dockerfile: Dockerfile-mock
+    container_name: mock-server
+    ports:
+      - "8081:8081"
+
+  service:
+    build: .
+    container_name: ai-load-balancer
+    ports:
+      - "8080:8080"
+    environment:
+      - OPENAI_URL=http://mock-server:8081/openai
+      - OPENAI_KEY=openai
+      - OPENAI_TIMEOUT=1m
+      - OPENAI_RPM=60
+      - HUGGINGFACE_URL=http://mock-server:8081/huggingface/
+      - HUGGINGFACE_KEY=huggingface
+      - HUGGINGFACE_TIMEOUT=1m
+      - HUGGINGFACE_RPM=100
+      - OPENROUTER_URL=http://mock-server:8081/openrouter
+      - OPENROUTER_KEY=openrouter
+      - OPENROUTER_TIMEOUT=1m
+      - OPENROUTER_RPM=50
+      - REDIS_URL=redis:6379
+      - REDIS_PASSWORD=
+      - USER_RPM=100
+      - MODEL_TO_CLIENTS=model-to-clients.json
+      - CACHE_RESPONSE_EXPIRATION_TIME=5m
+    depends_on:
+      - redis
+      - mock-server
+
+  k6-stress-test:
+    build:
+      context: .
+      dockerfile: test/Dockerfile-k6
+    container_name: k6-stress-test
+    depends_on:
+      - service
+    command: [ "run", "/test/stress-test.js" ]

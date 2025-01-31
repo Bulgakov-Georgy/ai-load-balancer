@@ -1,0 +1,59 @@
+basePath: /
+definitions:
+  api.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  api.GenerateRequest:
+    properties:
+      model:
+        type: string
+      prompt:
+        type: string
+    type: object
+  api.GenerateResponse:
+    properties:
+      response:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a load balancer service for AI model APIs.
+  title: AI Load Balancer API
+  version: "1.0"
+paths:
+  /generate:
+    post:
+      consumes:
+      - application/json
+      description: Generates text using one of the available AI APIs
+      parameters:
+      - description: prompt request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.GenerateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GenerateResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Generate AI Response
+swagger: "2.0"

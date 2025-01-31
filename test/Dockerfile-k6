@@ -1,0 +1,7 @@
+FROM grafana/k6:latest
+
+COPY /test/stress-test.js /test/stress-test.js
+
+WORKDIR /test
+
+CMD ["run", "/test/stress-test.js"]
